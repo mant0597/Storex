@@ -19,7 +19,13 @@ public class FileMetadata {
     public String getFileName() {
         return fileName;
     }
+    public Long getFileSize() {
+        return fileSize;
+    }
 
+    public void setFileSize(Long fileSize) {
+        this.fileSize = fileSize;
+    }
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
