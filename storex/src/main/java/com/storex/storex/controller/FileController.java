@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/files")
@@ -39,18 +40,19 @@ public class FileController {
     public String uploadFile(@RequestParam("file") MultipartFile file)
             throws Exception {
 
-        fileService.saveFile(file);
-
         FileMetadata metadata = new FileMetadata();
         metadata.setFileName(file.getOriginalFilename());
         metadata.setFileType(file.getContentType());
         metadata.setFileSize(file.getSize());
+        String objectName =
+                UUID.randomUUID()
+                        + "_" +
+                        file.getOriginalFilename();
         metadata.setStoragePath(
-                file.getOriginalFilename()
+                objectName
         );
-
+        fileService.saveFile(file,objectName);
         fileService.save(metadata);
-
         return "Uploaded Successfully";
     }
     @GetMapping
@@ -78,6 +80,11 @@ public class FileController {
                                 metadata.getFileName() + "\""
                 )
                 .body(content);
+    }
+    @DeleteMapping("/{id}")
+    public String DeleteFie(@PathVariable Long id) throws Exception{
+        fileService.deleteFile(id);
+        return "Deleted Successfully";
     }
 }
 

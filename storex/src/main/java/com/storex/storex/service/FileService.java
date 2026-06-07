@@ -4,6 +4,7 @@ import com.storex.storex.repository.FileMetadataRepository;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -34,12 +35,12 @@ public class FileService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
-    public void saveFile(MultipartFile file) throws Exception {
+    public void saveFile(MultipartFile file,String objectName) throws Exception {
 
         minioClient.putObject(
                 PutObjectArgs.builder()
                         .bucket(bucketName)
-                        .object(file.getOriginalFilename())
+                        .object(objectName)
                         .stream(
                                 file.getInputStream(),
                                 file.getSize(),
@@ -74,5 +75,10 @@ public class FileService {
     public InputStream downloadFile(String objectName) throws Exception {
         return minioClient.getObject(
                 GetObjectArgs.builder() .bucket(bucketName) .object(objectName) .build() );
+    }
+    public void deleteFile(Long id) throws Exception{
+         FileMetadata objectName=repository.findById(id).orElseThrow();
+         minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectName.getStoragePath()).build());
+        repository.deleteById(id);
     }
 }
