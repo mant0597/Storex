@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class FileController {
     }
     @PostMapping("/upload")
     public String uploadFile(@RequestParam("file") MultipartFile file)
-            throws IOException {
+            throws Exception {
 
         fileService.saveFile(file);
 
@@ -44,7 +45,9 @@ public class FileController {
         metadata.setFileName(file.getOriginalFilename());
         metadata.setFileType(file.getContentType());
         metadata.setFileSize(file.getSize());
-        metadata.setStoragePath("uploads/" + file.getOriginalFilename());
+        metadata.setStoragePath(
+                file.getOriginalFilename()
+        );
 
         fileService.save(metadata);
 
@@ -55,19 +58,26 @@ public class FileController {
         return fileService.getAllFiles();
     }
     @GetMapping("/{id}")
-    public ResponseEntity<Resource> downloadFile(
-            @PathVariable Long id)
-            throws MalformedURLException {
+    public ResponseEntity<byte[]> downloadFile(
+            @PathVariable Long id) throws Exception {
 
-        Resource resource = fileService.getFile(id);
+        FileMetadata metadata =
+                fileService.getMetadata(id);
+
+        InputStream stream =
+                fileService.downloadFile(
+                        metadata.getStoragePath()
+                );
+
+        byte[] content = stream.readAllBytes();
 
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" +
-                                resource.getFilename() + "\""
+                                metadata.getFileName() + "\""
                 )
-                .body(resource);
+                .body(content);
     }
 }
 

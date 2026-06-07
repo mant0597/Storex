@@ -1,26 +1,29 @@
 package com.storex.storex.service;
-
 import com.storex.storex.entity.FileMetadata;
 import com.storex.storex.repository.FileMetadataRepository;
+import io.minio.GetObjectArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.io.InputStream;
 import java.util.List;
 
 @Service
 public class FileService {
+    private final MinioClient minioClient;
 
     private final FileMetadataRepository repository;
 
-    public FileService(FileMetadataRepository repository) {
+    public FileService(
+            FileMetadataRepository repository,
+            MinioClient minioClient
+    ) {
         this.repository = repository;
+        this.minioClient = minioClient;
     }
 
     // Save metadata in DB
@@ -28,33 +31,48 @@ public class FileService {
         return repository.save(file);
     }
 
-    // Save actual file on disk
-    public void saveFile(MultipartFile file) throws IOException {
+    @Value("${minio.bucket-name}")
+    private String bucketName;
 
-        String uploadDir = "uploads/";
+    public void saveFile(MultipartFile file) throws Exception {
 
-        Path path = Paths.get(uploadDir);
-
-        if (!Files.exists(path)) {
-            Files.createDirectories(path);
-        }
-
-        Files.copy(
-                file.getInputStream(),
-                path.resolve(file.getOriginalFilename()),
-                StandardCopyOption.REPLACE_EXISTING
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(file.getOriginalFilename())
+                        .stream(
+                                file.getInputStream(),
+                                file.getSize(),
+                                -1
+                        )
+                        .contentType(file.getContentType())
+                        .build()
         );
     }
     public List<FileMetadata> getAllFiles() {
         return repository.findAll();
     }
-    public Resource getFile(Long id) throws MalformedURLException {
+    public Resource getFile(Long id) throws Exception {
 
         FileMetadata metadata =
-                repository.findById(id).orElseThrow();
+                repository.findById(id)
+                        .orElseThrow();
 
-        Path path = Paths.get(metadata.getStoragePath());
+        InputStream stream =
+                minioClient.getObject(
+                        GetObjectArgs.builder()
+                                .bucket("storex-files")
+                                .object(metadata.getFileName())
+                                .build()
+                );
 
-        return new UrlResource(path.toUri());
+        return new InputStreamResource(stream);
+    }
+    public FileMetadata getMetadata(Long id) {
+        return repository.findById(id).orElseThrow();
+    }
+    public InputStream downloadFile(String objectName) throws Exception {
+        return minioClient.getObject(
+                GetObjectArgs.builder() .bucket(bucketName) .object(objectName) .build() );
     }
 }
