@@ -1,5 +1,6 @@
 package com.storex.storex.service;
 import com.storex.storex.entity.FileMetadata;
+import com.storex.storex.exception.FileNotFoundException;
 import com.storex.storex.repository.FileMetadataRepository;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
@@ -57,7 +58,11 @@ public class FileService {
 
         FileMetadata metadata =
                 repository.findById(id)
-                        .orElseThrow();
+                        .orElseThrow(() ->
+                                new FileNotFoundException(
+                                        "File not found with id " + id
+                                )
+                        );
 
         InputStream stream =
                 minioClient.getObject(
@@ -70,14 +75,22 @@ public class FileService {
         return new InputStreamResource(stream);
     }
     public FileMetadata getMetadata(Long id) {
-        return repository.findById(id).orElseThrow();
+        return repository.findById(id).orElseThrow(() ->
+                new FileNotFoundException(
+                        "File not found with id " + id
+                )
+        );
     }
     public InputStream downloadFile(String objectName) throws Exception {
         return minioClient.getObject(
                 GetObjectArgs.builder() .bucket(bucketName) .object(objectName) .build() );
     }
     public void deleteFile(Long id) throws Exception{
-         FileMetadata objectName=repository.findById(id).orElseThrow();
+         FileMetadata objectName=repository.findById(id).orElseThrow(() ->
+                 new FileNotFoundException(
+                         "File not found with id " + id
+                 )
+         );
          minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectName.getStoragePath()).build());
         repository.deleteById(id);
     }
