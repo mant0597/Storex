@@ -5,6 +5,7 @@ import com.storex.storex.dto.FileResponseDto;
 import com.storex.storex.dto.FileUploadRequest;
 import com.storex.storex.entity.FileMetadata;
 import com.storex.storex.service.FileService;
+import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +41,7 @@ public class FileController {
         return "Saved Successfully";
     }
     @PostMapping("/upload")
-    public String uploadFile(@RequestParam("file") MultipartFile file,@ModelAttribute  FileUploadRequest request)
+    public String uploadFile(@RequestParam("file") MultipartFile file, @Valid @ModelAttribute   FileUploadRequest request)
             throws Exception {
 
         FileMetadata metadata = new FileMetadata();
