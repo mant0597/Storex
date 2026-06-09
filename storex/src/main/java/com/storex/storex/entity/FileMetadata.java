@@ -1,5 +1,8 @@
 package com.storex.storex.entity;
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
+
 @Entity
 public class FileMetadata {
     @Id
@@ -8,11 +11,24 @@ public class FileMetadata {
     private String fileName;
     private String fileType;
     private Long fileSize;
-
+    private LocalDateTime uploadedAt;
     private String storagePath;
+    private String description;
+    private String uploadedBy;
     public FileMetadata() {
     }
-
+    public String getDescription(){
+        return description;
+    }
+    public void setDescription(String description){
+        this.description=description;
+    }
+    public String getUploadedBy(){
+        return uploadedBy;
+    }
+    public void setUploadedBy(String uploadedBy){
+        this.uploadedBy=uploadedBy;
+    }
     public Long getId() {
         return id;
     }
@@ -22,7 +38,13 @@ public class FileMetadata {
     public Long getFileSize() {
         return fileSize;
     }
+    public LocalDateTime getUploadedAt() {
+        return uploadedAt;
+    }
 
+    public void setUploadedAt(LocalDateTime uploadedAt) {
+        this.uploadedAt = uploadedAt;
+    }
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
     }

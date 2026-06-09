@@ -1,4 +1,5 @@
 package com.storex.storex.service;
+import com.storex.storex.dto.FileResponseDto;
 import com.storex.storex.entity.FileMetadata;
 import com.storex.storex.exception.FileNotFoundException;
 import com.storex.storex.repository.FileMetadataRepository;
@@ -12,6 +13,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,7 +21,14 @@ public class FileService {
     private final MinioClient minioClient;
 
     private final FileMetadataRepository repository;
-
+    public FileResponseDto convertToDto(FileMetadata file){
+        return new FileResponseDto(
+                file.getId(),
+                file.getFileName(),
+                file.getFileType(),
+                file.getFileSize()
+        );
+    }
     public FileService(
             FileMetadataRepository repository,
             MinioClient minioClient
@@ -93,5 +102,11 @@ public class FileService {
          );
          minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectName.getStoragePath()).build());
         repository.deleteById(id);
+    }
+    public List<FileResponseDto> getAllFilesDto() {
+        return repository.findAll()
+                .stream()
+                .map(this::convertToDto)
+                .toList();
     }
 }

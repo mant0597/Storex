@@ -1,6 +1,8 @@
 package com.storex.storex.controller;
 
 
+import com.storex.storex.dto.FileResponseDto;
+import com.storex.storex.dto.FileUploadRequest;
 import com.storex.storex.entity.FileMetadata;
 import com.storex.storex.service.FileService;
 import org.springframework.core.io.Resource;
@@ -13,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,13 +40,21 @@ public class FileController {
         return "Saved Successfully";
     }
     @PostMapping("/upload")
-    public String uploadFile(@RequestParam("file") MultipartFile file)
+    public String uploadFile(@RequestParam("file") MultipartFile file,@ModelAttribute  FileUploadRequest request)
             throws Exception {
 
         FileMetadata metadata = new FileMetadata();
         metadata.setFileName(file.getOriginalFilename());
         metadata.setFileType(file.getContentType());
         metadata.setFileSize(file.getSize());
+        metadata.setUploadedAt(LocalDateTime.now());
+        metadata.setDescription(
+                request.getDescription()
+        );
+
+        metadata.setUploadedBy(
+                request.getUploadedBy()
+        );
         String objectName =
                 UUID.randomUUID()
                         + "_" +
@@ -56,8 +67,8 @@ public class FileController {
         return "Uploaded Successfully";
     }
     @GetMapping
-    public List<FileMetadata> getAllFiles() {
-        return fileService.getAllFiles();
+    public List<FileResponseDto> getAllFiles() {
+        return fileService.getAllFilesDto();
     }
     @GetMapping("/{id}")
     public ResponseEntity<byte[]> downloadFile(
