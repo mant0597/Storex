@@ -1,0 +1,5 @@
+.env
+storex/learning_progress.md
+.idea/
+target/
+**/target/

@@ -2,12 +2,15 @@ package com.storex.storex.service;
 import com.storex.storex.dto.FileResponseDto;
 import com.storex.storex.entity.FileMetadata;
 import com.storex.storex.exception.FileNotFoundException;
+import com.storex.storex.exception.InvalidFileTypeException;
 import com.storex.storex.repository.FileMetadataRepository;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -46,7 +49,11 @@ public class FileService {
     private String bucketName;
 
     public void saveFile(MultipartFile file,String objectName) throws Exception {
-
+        if (!"application/pdf".equals(file.getContentType())) {
+            throw new InvalidFileTypeException(
+                    "Only PDF files are allowed"
+            );
+        }
         minioClient.putObject(
                 PutObjectArgs.builder()
                         .bucket(bucketName)
@@ -83,6 +90,8 @@ public class FileService {
 
         return new InputStreamResource(stream);
     }
+
+    @Cacheable(value = "fileMetadata", key = "#id")
     public FileMetadata getMetadata(Long id) {
         return repository.findById(id).orElseThrow(() ->
                 new FileNotFoundException(
@@ -94,6 +103,8 @@ public class FileService {
         return minioClient.getObject(
                 GetObjectArgs.builder() .bucket(bucketName) .object(objectName) .build() );
     }
+
+    @CacheEvict(value = "fileMetadata", key = "#id")
     public void deleteFile(Long id) throws Exception{
          FileMetadata objectName=repository.findById(id).orElseThrow(() ->
                  new FileNotFoundException(
@@ -103,10 +114,9 @@ public class FileService {
          minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectName.getStoragePath()).build());
         repository.deleteById(id);
     }
-    public List<FileResponseDto> getAllFilesDto() {
-        return repository.findAll()
-                .stream()
-                .map(this::convertToDto)
-                .toList();
+    public org.springframework.data.domain.Page<FileResponseDto> getAllFilesDto(String uploadedBy, org.springframework.data.domain.Pageable pageable) {
+        return repository.findByUploadedBy(uploadedBy, pageable)
+                .map(this::convertToDto);
     }
+
 }

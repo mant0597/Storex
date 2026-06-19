@@ -32,4 +32,20 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(errors);
     }
-}
+    @ExceptionHandler(InvalidFileTypeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidFileType(
+            InvalidFileTypeException ex
+    ) {
+        return ResponseEntity
+                .badRequest()
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralException(
+            Exception ex
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Internal Server Error: " + ex.getMessage()));
+    }
+}

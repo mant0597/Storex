@@ -1,11 +1,15 @@
 package com.storex.storex.entity;
 import jakarta.persistence.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
-public class FileMetadata {
+public class FileMetadata implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Id
+
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String fileName;

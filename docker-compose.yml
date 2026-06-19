@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: storex-db
+    ports:
+      - "3308:3306" # Maps MySQL's internal 3306 port to external 3308
+
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_DATABASE: "filestore"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  # 2. MinIO Object Storage Service
+  minio:
+    image: minio/minio
+    container_name: storex-minio
+    ports:
+      - "9000:9000" # API Port
+      - "9001:9001" # Console GUI Port
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY}"
+      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY}"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  # 3. Redis Cache Service
+  redis:
+    image: redis:alpine
+    container_name: storex-redis
+    ports:
+      - "6379:6379" # Maps standard Redis port 6379
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  minio_data:
+

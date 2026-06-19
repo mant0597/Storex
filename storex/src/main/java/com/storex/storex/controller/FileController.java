@@ -1,14 +1,19 @@
 package com.storex.storex.controller;
 
-
 import com.storex.storex.dto.FileResponseDto;
 import com.storex.storex.dto.FileUploadRequest;
 import com.storex.storex.entity.FileMetadata;
 import com.storex.storex.service.FileService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,7 +46,7 @@ public class FileController {
         return "Saved Successfully";
     }
     @PostMapping("/upload")
-    public String uploadFile(@RequestParam("file") MultipartFile file, @Valid @ModelAttribute   FileUploadRequest request)
+    public String uploadFile(@RequestParam("file") MultipartFile file, @Valid @ModelAttribute FileUploadRequest request)
             throws Exception {
 
         FileMetadata metadata = new FileMetadata();
@@ -53,9 +58,10 @@ public class FileController {
                 request.getDescription()
         );
 
-        metadata.setUploadedBy(
-                request.getUploadedBy()
-        );
+        // Resolve logged-in username programmatically from the security context
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        metadata.setUploadedBy(currentUsername);
+
         String objectName =
                 UUID.randomUUID()
                         + "_" +
@@ -68,8 +74,20 @@ public class FileController {
         return "Uploaded Successfully";
     }
     @GetMapping
-    public List<FileResponseDto> getAllFiles() {
-        return fileService.getAllFilesDto();
+    public Page<FileResponseDto> getAllFiles(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "uploadedAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String direction
+    ) {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        
+        Sort sort = direction.equalsIgnoreCase("ASC") ? 
+                Sort.by(sortBy).ascending() : 
+                Sort.by(sortBy).descending();
+                
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return fileService.getAllFilesDto(currentUsername, pageable);
     }
     @GetMapping("/{id}")
     public ResponseEntity<byte[]> downloadFile(
@@ -77,6 +95,12 @@ public class FileController {
 
         FileMetadata metadata =
                 fileService.getMetadata(id);
+
+        // Check if current user owns the file
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!currentUsername.equals(metadata.getUploadedBy())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         InputStream stream =
                 fileService.downloadFile(
@@ -94,9 +118,18 @@ public class FileController {
                 .body(content);
     }
     @DeleteMapping("/{id}")
-    public String DeleteFie(@PathVariable Long id) throws Exception{
+    public ResponseEntity<String> DeleteFie(@PathVariable Long id) throws Exception{
+        FileMetadata metadata = fileService.getMetadata(id);
+
+        // Check if current user owns the file
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!currentUsername.equals(metadata.getUploadedBy())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access Denied: You do not own this file");
+        }
+
         fileService.deleteFile(id);
-        return "Deleted Successfully";
+        return ResponseEntity.ok("Deleted Successfully");
     }
 }
+
 
