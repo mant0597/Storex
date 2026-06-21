@@ -21,4 +21,12 @@ public class MinioConfig {
                 .credentials(accessKey, secretKey)
                 .build();
     }
+
+    @Bean
+    public org.springframework.web.client.RestClient.Builder restClientBuilder() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(java.time.Duration.ofSeconds(60));
+        requestFactory.setReadTimeout(java.time.Duration.ofSeconds(180));
+        return org.springframework.web.client.RestClient.builder().requestFactory(requestFactory);
+    }
 }

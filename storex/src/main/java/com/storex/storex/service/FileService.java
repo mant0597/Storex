@@ -83,8 +83,8 @@ public class FileService {
         InputStream stream =
                 minioClient.getObject(
                         GetObjectArgs.builder()
-                                .bucket("storex-files")
-                                .object(metadata.getFileName())
+                                .bucket(bucketName)
+                                .object(metadata.getStoragePath())
                                 .build()
                 );
 
